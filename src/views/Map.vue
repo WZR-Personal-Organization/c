@@ -100,37 +100,6 @@
       </div>
     </div>
 
-    <!-- 信息录入表单悬浮框 -->
-    <div v-if="isShowForm" class="iframe-mask">
-      <div class="iframe-container form-container">
-        <button class="close-btn" @click="closeForm">×</button>
-        <div v-if="!submitSuccess" class="form-content">
-          <div class="form-title">{{ formTitles[currentFormType] }}</div>
-          <!-- 动态表单字段 -->
-          <div v-if="currentFormType === 'person'" class="form-group">
-            <label>姓名：</label>
-            <input v-model="formData.name" placeholder="请输入姓名">
-          </div>
-          <div v-if="currentFormType === 'person'" class="form-group">
-            <label>电话：</label>
-            <input v-model="formData.phone" placeholder="请输入电话">
-          </div>
-          <div v-if="currentFormType === 'car'" class="form-group">
-            <label>车牌号：</label>
-            <input v-model="formData.license" placeholder="请输入车牌号">
-          </div>
-          <div v-if="currentFormType === 'device'" class="form-group">
-            <label>设备编号：</label>
-            <input v-model="formData.deviceNo" placeholder="请输入设备编号">
-          </div>
-          <button class="submit-btn" @click="submitForm">提交</button>
-        </div>
-        <div v-if="submitSuccess" class="success-tip">
-          <p>提交成功！</p>
-          <button class="close-btn" @click="closeForm">关闭</button>
-        </div>
-      </div>
-    </div>
   </div>
 </div>
 </template>
@@ -781,7 +750,7 @@ export default {
 .close-btn {
   position: absolute;
   top: 10px;
-  right: 10px;
+  right: 15px;
   background: #fff; /* 关闭按钮保留白色背景（可选修改） */
   border: none;
   font-size: 24px;
