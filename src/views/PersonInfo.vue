@@ -97,7 +97,7 @@
 
         <!-- 操作按钮组 -->
         <div class="btn-group">
-          <button class="submit-btn" @click="submitForm">提交</button>
+          <button class="submit-btn" @click="submitForm">新增</button>
           <button class="modify-btn" v-if="currentPerson.id != -1" @click="updatePerson">修改</button>
           <button class="delete-btn" v-if="currentPerson.id != -1" @click="deletePerson">删除</button>
         </div>
@@ -175,13 +175,11 @@ export default {
     async submitForm() {
       try {
         const res = await service.post('/beidou/user', this.formData)
-        console.log(res)
         if (res.data.status === 200) { // 这个是http的返回状态
-          if(res.data.data.status === 200){ // 这个是api接口的返回状态
+          //if(res.data.data.status === 200){ // 这个是api接口的返回状态
             this.submitSuccess = true
             this.getAllPersonInfo() // 刷新列表
-            this.currentPerson = {id:-1} // 清空选中状态
-          }
+          //}
         }
       } catch (error) {
         console.error('提交失败:', error)
@@ -207,41 +205,11 @@ export default {
       if(this.currentPerson.id != person.id){ // 选择人员
         this.currentPerson = person
         // 将人员信息填充到表单（需根据实际字段匹配）
-        this.formData = {
-          id:person.id,
-          secondaryCompany: person.secondaryCompany,
-          thirdLevelCompany: person.thirdLevelCompany,
-          stationName: person.stationName,
-          stationType: person.stationType,
-          fullName: person.fullName,
-          customerType: person.customerType,
-          jobId: person.jobId,
-          cellPhoneNumber: person.cellPhoneNumber,
-          organization: person.organization,
-          team: person.team,
-          isOperationInspectionSeparated: person.isOperationInspectionSeparated,
-          role: person.role,
-          remarks: person.remarks,
-        }
+        this.formData = { ...person } // 深拷贝避免引用问题
       }else{ // 取消选择人员
         this.currentPerson = {id:-1}
         // 重置表单
-        this.formData = {
-          id:0,
-          secondaryCompany: '',
-          thirdLevelCompany: '',
-          stationName: '',
-          stationType: '',
-          fullName: '',
-          customerType: '',
-          jobId: '',
-          cellPhoneNumber: '',
-          organization: '',
-          team: '',
-          isOperationInspectionSeparated: '',
-          role: '',
-          remarks: ''
-        }
+        this.resetForm()
       }
       
     },
@@ -257,7 +225,7 @@ export default {
             if (deleteRes.status === 200) { // 这个是http的返回状态
               if(deleteRes.data.status === 200){ // 这个是api接口的返回状态
                 this.submitSuccess = true
-                console.log(submitRes.data)
+                this.getAllPersonInfo() // 刷新列表
               }
             }
           }
@@ -290,9 +258,6 @@ export default {
       this.currentPerson = {id:-1}
     },
 
-    test(aa){
-      console.log(aa)
-    },
   },
   
 }
@@ -301,6 +266,7 @@ export default {
 <style scoped>
 /* 整体布局：左右分栏 */
 .form-container {
+  position:relative;
   display: flex;
   gap: 2rem;
   padding: 2rem;
@@ -309,13 +275,19 @@ export default {
   background: #ffffff;
 }
 
+
 /* 左侧列表样式 */
 .left-list {
   width: 30%;
   background: #f8f9fa;
   border-radius: 8px;
   padding: 1.5rem;
-  overflow-y: auto;
+  height: 1279.2px; /* 关键：高度设置为右侧form高度 */
+}
+
+.list-content {
+  height: calc(100% - 24px - 24px); /* 填满 left-list 高度 */
+  overflow-y: auto; /* 关键：滚动条在 list-content 内部 */
 }
 
 .list-title {

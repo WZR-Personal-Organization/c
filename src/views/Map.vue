@@ -466,25 +466,6 @@ export default {
     closeForm() {
       this.isShowForm = false;
     },
-    // 提交表单
-    async submitForm() {
-      try {
-        // 根据表单类型调用不同API（示例）
-        const apiMap = {
-          person: '/beidou/user',
-          car: '/beidou/vehicle',
-          device: '/beidou/device'
-        };
-        const response = await service.post(apiMap[this.currentFormType], this.formData);
-        if (response.data.code === 200) {
-          this.submitSuccess = true; // 显示成功提示
-        } else {
-          console.error('提交失败:', response.data.msg);
-        }
-      } catch (error) {
-        console.error('提交异常:', error);
-      }
-    },
 
     // 打开人员信息录入页面
     openPersonInfo() {
@@ -515,6 +496,10 @@ export default {
           // Map新增了数据
           // 在高德地图中新增标记点
           this.addPointToAMap(newMap.get(key),key);
+          if(this.currentMarkerSn == ''){      
+            // 新增点位后，如果没有关注点，显示全部标记点
+            this.handleAllMarkerShow();
+          }
         } else if (newMap.get(key) !== oldMap.get(key)) {
           // Map修改了数据
           // 更新高德地图中的标记点

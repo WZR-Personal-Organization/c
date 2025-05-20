@@ -126,7 +126,7 @@
 
         <!-- 操作按钮组 -->
         <div class="btn-group">
-          <button class="submit-btn" @click="submitForm">提交</button>
+          <button class="submit-btn" @click="submitForm">新增</button>
           <button class="modify-btn" v-if="currentVehicle.id !== -1" @click="updateVehicle">修改</button>
           <button class="delete-btn" v-if="currentVehicle.id !== -1" @click="deleteVehicle">删除</button>
         </div>
@@ -197,7 +197,7 @@ export default {
     async submitForm() {
       try {
         const res = await service.post('/beidou/vehicle', this.formData)
-        if (res.data.status === 200) {
+        if (res.status === 200 && res.data.status === 200) {
           this.submitSuccess = true
           this.getAllVehicleInfo() // 刷新列表
           this.currentVehicle = { id: -1 } // 清空选中状态
@@ -237,9 +237,9 @@ export default {
       if (this.currentVehicle.id === -1) return
       try {
         const submitRes = await service.post('/beidou/vehicle', this.formData)
-        if (submitRes.data.status === 200) {
+        if (submitRes.status === 200 && submitRes.data.status === 200) {
           const deleteRes = await service.delete(`/beidou/vehicle/${this.currentVehicle.id}`)
-          if (deleteRes.data.status === 200) {
+          if (deleteRes.status === 200 && deleteRes.data.status === 200) {
             this.submitSuccess = true
             this.getAllVehicleInfo()
           }
@@ -254,7 +254,7 @@ export default {
       if (this.currentVehicle.id === -1) return
       try {
         const res = await service.delete(`/beidou/vehicle/${this.currentVehicle.id}`)
-        if (res.data.status === 200) {
+        if (res.status === 200 && res.data.status === 200) {
           this.getAllVehicleInfo()
           this.resetForm()
         }
@@ -291,6 +291,8 @@ export default {
         ownershipOfPropertyRights: '',
         vehiclePhotos: ''
       }
+      
+      this.currentVehicle = {id:-1}
     }
   }
 }
@@ -312,6 +314,12 @@ export default {
   border-radius: 8px;
   padding: 1.5rem;
   overflow-y: auto;
+  height: 1801.2px; /* 关键：高度设置为右侧form高度 */
+}
+
+.list-content {
+  max-height: calc(100% - 24px - 24px); /* 填满 left-list 高度 */
+  overflow-y: auto; /* 关键：滚动条在 list-content 内部 */
 }
 
 .list-title {

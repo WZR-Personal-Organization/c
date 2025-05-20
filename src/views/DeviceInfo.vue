@@ -51,7 +51,7 @@
 
         <!-- 操作按钮组 -->
         <div class="btn-group">
-          <button class="submit-btn" @click="submitForm">提交</button>
+          <button class="submit-btn" @click="submitForm">新增</button>
           <button class="modify-btn" v-if="currentDevice.id !== -1" @click="updateDevice">修改</button>
           <button class="delete-btn" v-if="currentDevice.id !== -1" @click="deleteDevice">删除</button>
         </div>
@@ -114,7 +114,7 @@ export default {
     async submitForm() {
       try {
         const res = await service.post('/beidou/device', this.formData)
-        if (res.data.status === 200) {
+        if (res.status === 200 && res.data.status === 200) {
           this.submitSuccess = true
           this.getAllDeviceInfo() // 刷新设备列表
           this.currentDevice = { id: -1 } // 清空选中状态
@@ -128,7 +128,7 @@ export default {
     async getAllDeviceInfo() {
       try {
         const res = await service.get('/beidou/device')
-        if (res.data.status === 200) {
+        if (res.status === 200 && res.data.status === 200) {
           this.deviceList = res.data.data
         }
       } catch (error) {
@@ -141,23 +141,11 @@ export default {
       if (this.currentDevice.id !== device.id) {
         // 选择设备：填充表单
         this.currentDevice = device
-        this.formData = {
-          id: device.id,
-          deviceSn: device.deviceSn,
-          deviceName: device.deviceName,
-          deviceType: device.deviceType,
-          basicInformation: device.basicInformation
-        }
+        this.formData = { ...device }
       } else {
         // 取消选择：重置表单
         this.currentDevice = { id: -1 }
-        this.formData = {
-          id: 0,
-          deviceSn: '',
-          deviceName: '',
-          deviceType: '',
-          basicInformation: ''
-        }
+        this.resetForm() // 清空表单
       }
     },
 
@@ -167,10 +155,10 @@ export default {
       try {
         // 提交修改后的设备信息
         const submitRes = await service.post('/beidou/device', this.formData)
-        if (submitRes.data.status === 200) {
+        if (submitRes.status === 200 && submitRes.data.status === 200) {
           // 删除原设备（假设接口支持）
           const deleteRes = await service.delete(`/beidou/device/${this.currentDevice.id}`)
-          if (deleteRes.data.status === 200) {
+          if (deleteRes.status === 200 && deleteRes.data.status === 200) {
             this.submitSuccess = true
             this.getAllDeviceInfo() // 刷新列表
           }
@@ -185,7 +173,7 @@ export default {
       if (this.currentDevice.id === -1) return
       try {
         const res = await service.delete(`/beidou/device/${this.currentDevice.id}`)
-        if (res.data.status === 200) {
+        if (res.status === 200 && res.data.status === 200) {
           this.getAllDeviceInfo() // 刷新列表
           this.resetForm() // 清空表单
         }
@@ -213,20 +201,27 @@ export default {
 <style scoped>
 /* 复用PersonInfo.vue的样式（左侧列表、右侧表单、按钮等布局） */
 .form-container {
+  position:relative;
   display: flex;
   gap: 2rem;
   padding: 2rem;
-  min-height: auto; /* 关键：高度由内容决定 */
+  min-height: auto; /*关键：高度由内容决定*/
   background: #ffffff;
   align-items: flex-start; /* 左右子元素顶部对齐，高度随内容自适应 */
 }
 
 .left-list {
+  position:relative;
   width: 30%;
   background: #f8f9fa;
   border-radius: 8px;
   padding: 1.5rem;
-  overflow-y: auto;
+  height: 511.2px; /* 关键：高度设置为右侧form高度 */
+}
+
+.list-content {
+  max-height: 90%; /* 本页面太短，写死了 */
+  overflow-y: auto; /* 关键：滚动条在 list-content 内部 */
 }
 
 .list-title {
@@ -259,6 +254,7 @@ export default {
   color: #64748b;
   text-align: center;
   padding: 2rem;
+  height: 100%; /* 填满 list-content 高度 */
 }
 
 .right-form {
