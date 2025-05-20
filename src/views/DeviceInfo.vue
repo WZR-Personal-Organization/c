@@ -216,8 +216,9 @@ export default {
   display: flex;
   gap: 2rem;
   padding: 2rem;
-  min-height: 100vh;
+  min-height: auto; /* 关键：高度由内容决定 */
   background: #ffffff;
+  align-items: flex-start; /* 左右子元素顶部对齐，高度随内容自适应 */
 }
 
 .left-list {
@@ -233,6 +234,7 @@ export default {
   color: #2563eb;
   font-weight: 600;
   margin-bottom: 1rem;
+  margin-top: 0rem;
 }
 
 .list-item {
@@ -268,7 +270,6 @@ export default {
   background: #f8f9fa;
   border-radius: 8px;
   flex: 1;
-  /* height: 93.7%; */
 }
 
 .form-section {
@@ -282,7 +283,8 @@ export default {
   font-size: 1.1rem;
   color: #2563eb;
   font-weight: 600;
-  margin-bottom: 1rem;
+  margin: 0rem;
+  margin-bottom: 0.5rem;
 }
 
 .form-group {

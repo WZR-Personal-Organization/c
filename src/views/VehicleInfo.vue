@@ -319,6 +319,7 @@ export default {
   color: #2563eb;
   font-weight: 600;
   margin-bottom: 1rem;
+  margin-top: 0rem;
 }
 
 .list-item {
@@ -367,7 +368,8 @@ export default {
   font-size: 1.1rem;
   color: #2563eb;
   font-weight: 600;
-  margin-bottom: 1rem;
+  margin: 0rem;
+  margin-bottom: 0.5rem;
 }
 
 .form-group {
