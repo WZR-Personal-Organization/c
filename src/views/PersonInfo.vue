@@ -1,6 +1,6 @@
 <template>
   <div class="form-container">
-    <!-- 左侧已录入人员列表 -->
+    <!-- 左侧已录入人员列表  -->
     <div class="left-list">
       <h3 class="list-title">已录入人员</h3>
       <div class="list-content" v-if="personList.length">
@@ -8,7 +8,7 @@
           class="list-item" 
           v-for="person in personList" 
           :key="person.id"
-          :class="{ active: selectedPerson.id === person.id }"
+          :class="{ active:  currentPerson.id === person.id}"
           @click="selectPerson(person)"
         >
           <p>姓名：{{ person.fullName }}</p>
@@ -22,7 +22,7 @@
     <div class="right-form">
       <!-- 未提交时显示表单 -->
       <div v-if="!submitSuccess" class="form-content">
-        
+        <h3 class="section-title">{{sectionTitle}}</h3>
         <!-- 公司与场站信息 -->
         <div class="form-section">
           <h3 class="section-title">公司与场站信息</h3>
@@ -98,8 +98,8 @@
         <!-- 操作按钮组 -->
         <div class="btn-group">
           <button class="submit-btn" @click="submitForm">提交</button>
-          <button class="modify-btn" v-if="selectedPerson" @click="updatePerson">修改</button>
-          <button class="delete-btn" v-if="selectedPerson" @click="deletePerson">删除</button>
+          <button class="modify-btn" v-if="currentPerson.id != -1" @click="updatePerson">修改</button>
+          <button class="delete-btn" v-if="currentPerson.id != -1" @click="deletePerson">删除</button>
         </div>
       </div>
 
@@ -138,11 +138,25 @@ export default {
       },
       submitSuccess: false,
       personList: [], // 已录入人员列表
-      selectedPerson: null, // 当前选中人员
-      refreshTimer: null // 定时刷新定时器
+      currentPerson: {id:-1}, // 当前选中人员
+      refreshTimer: null, // 定时刷新定时器
+      sectionTitle:"新增人员", // section-title内容
     }
   },
   computed: {
+  },
+  watch: {
+    // 监听 currentPerson 变化
+    currentPerson: {
+      handler(newval) {  
+        if(newval.id === -1){ // 根据是否选中已有人员，更改section-title
+          this.sectionTitle = "新增人员"
+        }else{
+          this.sectionTitle = "修改人员信息"
+        }
+      },
+      deep: true
+    },
   },
   mounted() {
     // 页面加载时获取人员列表
@@ -166,20 +180,17 @@ export default {
           if(res.data.data.status === 200){ // 这个是api接口的返回状态
             this.submitSuccess = true
             this.getAllPersonInfo() // 刷新列表
-            this.selectedPerson = null // 清空选中状态
+            this.currentPerson = {id:-1} // 清空选中状态
           }
         }
       } catch (error) {
         console.error('提交失败:', error)
       }
     },
-    goBack() {
-      this.$router.go(-1)
-    },
     // 获取已录入人员列表
     async getAllPersonInfo() {
       try {
-        const res = await service.get('/beidou/users')
+        const res = await service.get('/beidou/user')
         if (res.status === 200) {
           if(res.data.status === 200){ // 这个是api接口的返回状态
             const result = res.data.data;
@@ -192,33 +203,57 @@ export default {
     },
     // 选择人员填充表单
     selectPerson(person) {
-      this.selectedPerson = person
-      // 将人员信息填充到表单（需根据实际字段匹配）
-      this.formData = {
-        secondaryCompany: person.secondaryCompany,
-        thirdLevelCompany: person.thirdLevelCompany,
-        stationName: person.stationName,
-        stationType: person.stationType,
-        fullName: person.fullName,
-        customerType: person.customerType,
-        jobId: person.jobId,
-        cellPhoneNumber: person.cellPhoneNumber,
-        organization: person.organization,
-        team: person.team,
-        isOperationInspectionSeparated: person.isOperationInspectionSeparated,
-        role: person.role,
-        remarks: person.remarks,
+      
+      if(this.currentPerson.id != person.id){ // 选择人员
+        this.currentPerson = person
+        // 将人员信息填充到表单（需根据实际字段匹配）
+        this.formData = {
+          id:person.id,
+          secondaryCompany: person.secondaryCompany,
+          thirdLevelCompany: person.thirdLevelCompany,
+          stationName: person.stationName,
+          stationType: person.stationType,
+          fullName: person.fullName,
+          customerType: person.customerType,
+          jobId: person.jobId,
+          cellPhoneNumber: person.cellPhoneNumber,
+          organization: person.organization,
+          team: person.team,
+          isOperationInspectionSeparated: person.isOperationInspectionSeparated,
+          role: person.role,
+          remarks: person.remarks,
+        }
+      }else{ // 取消选择人员
+        this.currentPerson = {id:-1}
+        // 重置表单
+        this.formData = {
+          id:0,
+          secondaryCompany: '',
+          thirdLevelCompany: '',
+          stationName: '',
+          stationType: '',
+          fullName: '',
+          customerType: '',
+          jobId: '',
+          cellPhoneNumber: '',
+          organization: '',
+          team: '',
+          isOperationInspectionSeparated: '',
+          role: '',
+          remarks: ''
+        }
       }
+      
     },
 
     // 修改人员信息
     async updatePerson() { // 先新增再删除原有
-      if (!this.selectedPerson) return
+      if (this.currentPerson.id === -1) return
       try {
         const submitRes = await service.post('/beidou/user', this.formData)
         if (submitRes.status === 200) { // 这个是http的返回状态
           if(submitRes.data.status === 200){ // 这个是api接口的返回状态
-            const deleteRes = await service.delete(`/beidou/user/${this.selectedPerson.id}`)
+            const deleteRes = await service.delete(`/beidou/user/${this.currentPerson.id}`)
             if (deleteRes.status === 200) { // 这个是http的返回状态
               if(deleteRes.data.status === 200){ // 这个是api接口的返回状态
                 this.submitSuccess = true
@@ -234,9 +269,9 @@ export default {
 
     // 删除人员信息
     async deletePerson() {
-      if (!this.selectedPerson) return
+      if (this.currentPerson.id === -1) return
       try {
-        const res = await service.delete(`/beidou/user/${this.selectedPerson.id}`)
+        const res = await service.delete(`/beidou/user/${this.currentPerson.id}`)
         if (res.status === 200) {
           if (res.data.status === 200) {
             this.getAllPersonInfo() // 刷新列表
@@ -252,8 +287,12 @@ export default {
     resetForm() {
       this.submitSuccess = false
       this.formData = {} // 清空表单（或保留初始值）
-      this.selectedPerson = null
-    }
+      this.currentPerson = {id:-1}
+    },
+
+    test(aa){
+      console.log(aa)
+    },
   },
   
 }
@@ -265,7 +304,8 @@ export default {
   display: flex;
   gap: 2rem;
   padding: 2rem;
-  height: 100vh; /* 全屏高度 */
+  margin: 0rem;
+  min-height: 100vh; /* 全屏高度 */
   background: #ffffff;
 }
 
@@ -282,7 +322,8 @@ export default {
   font-size: 1.1rem;
   color: #2563eb;
   font-weight: 600;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1rem;
+  margin-top: 0rem;
 }
 
 .list-item {
@@ -310,15 +351,23 @@ export default {
 }
 
 /* 右侧表单区域 */
+.form-content{
+  padding: 1.5rem;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: #2563eb;
+  border-width: 2px;
+  flex: 1;
+}
+
 .right-form {
   flex: 1;
 }
 
 /* 表单分区样式 */
 .form-section {
-  margin-bottom: 2rem;
   padding: 1.5rem;
-  background: #f8f9fa;
+  background: #ebeff3;
   border-radius: 8px;
 }
 
@@ -326,7 +375,8 @@ export default {
   font-size: 1.1rem;
   color: #2563eb;
   font-weight: 600;
-  margin-bottom: 1.5rem;
+  margin: 0rem;
+  margin-bottom: 0.5rem;
 }
 
 /* 表单字段组样式优化 */
@@ -360,7 +410,8 @@ export default {
   margin-top: 2rem;
 }
 
-.modify-btn, .delete-btn {
+
+.submit-btn, .modify-btn, .delete-btn {
   padding: 1rem;
   border: none;
   border-radius: 4px;
@@ -371,8 +422,17 @@ export default {
   max-width: 200px;
 }
 
+.submit-btn {
+  background: #1d4ed8;
+  color: white;
+}
+
+.submit-btn:hover {
+  background: #0841df;
+}
+
 .modify-btn {
-  background: #475569; /* 略浅于提交按钮的颜色 */
+  background: #475569; 
   color: white;
 }
 
@@ -415,9 +475,7 @@ export default {
   background: #334155;
 }
 
-.submit-btn:hover {
-  background: #1d4ed8;
-}
+
 
 /* 成功提示样式 */
 .success-tip {
