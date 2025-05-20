@@ -77,7 +77,7 @@
           <div class="marker-item" 
             v-for="(value,key) in mapPointsMap" 
             @click="handleMarkerClick(value[1],value[1].sn)" 
-            :class="{ active: key === selectedRightSn }"  
+            :class="{ active: value[1].sn === selectedRightSn }"  
             :key="key">
             <div class="marker-info">
               <!-- map在vue2中被v-for识别时，每一行都会被当成[key,value]的数组，相当于[[key1,value1],[key2,value2]]，所以直接拿到的value实际是[key2,value2]，访问value的第二个元素才是map的value的真正值 -->
