@@ -4,6 +4,7 @@ import Map from '../views/Map.vue'
 import PersonInfo from '../views/PersonInfo.vue'
 import VehicleInfo from '../views/VehicleInfo.vue'
 import DeviceInfo from '../views/DeviceInfo.vue'
+import BindingInfo from '../views/BindingInfo.vue'
 
 Vue.use(VueRouter)
 
@@ -31,6 +32,11 @@ const routes = [
     path: '/device-info',
     name: 'DeviceInfo',
     component: DeviceInfo
+  },
+  { // 绑定信息录入
+    path: '/binding-info',
+    name: 'BindingInfo',
+    component: BindingInfo
   }
 ]
 

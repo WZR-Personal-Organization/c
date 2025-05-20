@@ -48,6 +48,11 @@
             :style="{ backgroundImage: `url(${require('@/assets/images/device.png')})` }"
             @click="openDeviceInfo()"
           ></div>
+          <div 
+            class="input-icon"
+            :style="{ backgroundImage: `url(${require('@/assets/images/binding.png')})` }"
+            @click="openBindingInfo()"
+          ></div>
         </div>
       </div>
       <div class="map-placeholder">
@@ -71,15 +76,16 @@
           </div>
           <div class="marker-item" 
             v-for="(value,key) in mapPointsMap" 
-            @click="handleMarkerClick(value,key)" 
-            :class="{ active: index === selectedRightSn }"  
+            @click="handleMarkerClick(value[1],value[1].sn)" 
+            :class="{ active: key === selectedRightSn }"  
             :key="key">
             <div class="marker-info">
-              <p class="marker-name">{{ value.name }}</p>
-              <p class="marker-coord">SN：{{ value.sn }}</p>
-              <p class="marker-coord">经度：{{ value.longitude }}</p>
-              <p class="marker-coord">纬度：{{ value.latitude }}</p>
-              <p class="marker-coord">记录时间：{{ value.recordTime }}</p>
+              <!-- map在vue2中被v-for识别时，每一行都会被当成[key,value]的数组，相当于[[key1,value1],[key2,value2]]，所以直接拿到的value实际是[key2,value2]，访问value的第二个元素才是map的value的真正值 -->
+              <p class="marker-name">{{ value[1].name }}</p> 
+              <p class="marker-coord">SN：{{ value[1].sn }}</p>
+              <p class="marker-coord">经度：{{ value[1].longitude }}</p>
+              <p class="marker-coord">纬度：{{ value[1].latitude }}</p>
+              <p class="marker-coord">记录时间：{{ value[1].recordTime }}</p>
             </div>
           </div>
         </div>
@@ -145,52 +151,24 @@ export default {
         { name: '安全帽-04', status: '正常', url: 'http://www.hao123.com' },
         { name: '安全帽-05', status: '告警', url: 'http://www.baidu.com' }
       ],
-      mapPointsMap: new Map( // 定位标记点列表
+      mapPointsMap: new Map([ // 定位标记点列表
         ["sn1",{sn: "sn1",longitude: 116.4074,latitude: 39.9042,name: "标记点一",recordTime: ""}],
         ["sn1",{sn: "sn1",longitude: 116.4074,latitude: 39.9042,name: "标记点一",recordTime: ""}],
-      ),
-      mapPointsMarksMap: new Map( // 高德标记点对象列表
+      ]),
+      mapPointsMarksMap: new Map([ // 高德标记点对象列表
         ["sn1",{sn: "sn1",AmapMarks: null}],
         ["sn2",{sn: "sn2",AmapMarks: null}],
-      ),
+      ]),
       _oldMapPointsMap: null, // 用于监听mapPointsMap变化时，对比用
-      safeBoxMap: new Map( // 安全帽列表
+      safeBoxMap: new Map([ // 安全帽列表
         ["",{ name: '安全帽-01', status: '在线', url: 'http://www.baidu.com' }],
-      ),
-      // mapPoints: [
-      //   {
-      //     sn: "1",
-      //     longitude: 116.4074,
-      //     latitude: 39.9042,
-      //     name: "标记点一",
-      //     recordTime: "",
-      //   },
-      //   {
-      //     sn: "2",
-      //     longitude: 116.5074,
-      //     latitude: 39.8042,
-      //     name: "标记点二",
-      //     recordTime: "",
-      //   },
-      // ], // 标记点列表
-      // mapPointsTemp:[], // mapPoints的更新前缓存
-      // pointAmapMarks:[
-      //   {
-      //     sn: "1",
-      //     AmapMarks : null, //高德地图创建的标记点对象
-      //   },
-      //   {
-      //     sn: "2",
-      //     AmapMarks : null, //高德地图创建的标记点对象
-      //   }
-      // ], // 高德地图创建的标记点对象列表，通过index与mapPoints标记点列表关联，由于对mapPoints进行了监听，不想在标记点对象更新时触发
+      ]),
       isShowIframe: false,       // 控制悬浮框是否显示
       currentIframeUrl: '',       // 当前要显示的url
       map: null,      // 高德地图组件
       Amap: null,      // 高德地图组件
       TestLongitude: 116.397428, // 测试经度
       TestLatitude: 39.90923, // 测试纬度
-      socket: null, // 获得北斗坐标的socket
       normalPointIcon: null , // 正常状态下的标记点图标对象
       currentPointIcon: null , // 正在关注的点图标对象
       currentMarkerSn: "" , // 正在关注的点的sn
@@ -212,7 +190,6 @@ export default {
     ...mapGetters([
       'getSecurityJsCode', // 映射后可直接通过 this.getSecurityJsCode 访问
       'getKeyGD',           // 映射后可直接通过 this.getKeyGD 访问
-      'getWebSocketUrl',           // 映射后可直接通过 this.getKeyGD 访问
       'getMapCenterLongitude',           // 映射后可直接通过 this.getMapCenterLongitude 访问
       'getMapCenterLatitude',           // 映射后可直接通过 this.getMapCenterLatitude 访问
       'getAmapMaxZoom',           // 映射后可直接通过 this.getAmapMaxZoom 访问
@@ -225,21 +202,18 @@ export default {
     formFields() {
       return this.formConfig[this.activeForm]?.fields || {};
     },
-    // 将点位信息map中的值转换成数组，方便vue2响应
-    mapPointList(){
-      // 使用 Array.from 将 Map的values 转换为数组
-      return Array.from(this.mapPointsMap.values());
-    },
     
   },
   mounted() {
-    // 延时1s调用init函数,防止安全码和key加载不到
+    this.init();
+    // 延时1s调用initAMap函数,防止安全码和key加载不到
     setTimeout(() => {
-      this.init();
-    }, 1000);
+      // 初始化高德地图组件
+      this.initAMap();
+      // 立即执行一次（避免首次加载延迟）
+      this.ApiTimerFaction(); 
+    }, 500);
 
-    // 立即执行一次（避免首次加载延迟）
-    this.ApiTimerFaction(); 
     // 启动定时器（每5秒更新一次）
     this.ApiTimer = setInterval(() => {
       this.ApiTimerFaction();
@@ -256,40 +230,17 @@ export default {
       this.ApiTimer = null; // 释放引用
     }
 
-    // 在组件销毁前关闭 WebSocket 连接
-    if (this.socket) {
-      this.socket.close();
-    }
   },
   watch: {
-    // 监听mapPoints对象变化
-    mapPoints: {
-      handler(newPoints, oldPoints) { // 当变化时触发函数，调用dealPoint函数
-        newPoints.forEach(newMarker => {
-          oldPoints.forEach(oldMarker=>{
-            if(newMarker.sn == oldMarker.sn){
-              this.dealPoint(newMarker.latitude, newMarker.longitude, newMarker.sn);
-            }
-          })
-        });
-      },
-      deep: true // 深度监听对象内部变化
-    },
-
     // 监听 mapPointsMap 变化
-    mapPointsMap:{
-      handler(newVal, oldValz) {
-        // 关键1：复制旧值的深拷贝（避免引用共享）
-        const oldVal = JSON.parse(JSON.stringify(this._oldMapPointsMap));
-        
-        // 关键2：对比新旧值，区分变化类型
-        this.analyzeMapPointsMapChanges(oldVal, newVal);
-
-        // 保存当前值作为下次对比的旧值
-        this._oldMapPointsMap = JSON.parse(JSON.stringify(newVal));
+    mapPointsMap: {
+      handler(newMap) {  // newMap 是 Map 实例
+        const oldMap = this._oldMapPointsMap;  // 上一次保存的 Map 实例
+        this.analyzeMapPointsMapChanges(oldMap, newMap);
+        this._oldMapPointsMap = new Map(newMap);  // 深拷贝 Map（需确保值是不可变的，或手动复制）
       },
-      deep: true,  // 关键：开启深度监听，否则无法捕获属性级变化
-    }
+      deep: true
+    },
   },
   methods: {
     // 初始化高德地图组件
@@ -328,17 +279,14 @@ export default {
     },
     // 初始化
     init(){
-      console.log(11)
-      // 初始化标记点列表
-      this.mapPointsMap = new Map;
-      // 初始化高德地图创建的标记点对象列表
-      this.mapPointsMarksMap = new Map;
       // 初始化时保存旧值副本（用于首次对比）
-      this._oldMapPointsMap = JSON.parse(JSON.stringify(this.mapPointsMap));
+      this._oldMapPointsMap = new Map(this.mapPointsMap);
+      // 初始化标记点列表
+      this.mapPointsMap = new Map([]);
+      // 初始化高德地图创建的标记点对象列表
+      this.mapPointsMarksMap = new Map([]);
       // 初始化安全帽列表
       this.safeBoxList = [];
-      // 初始化高德地图组件
-      this.initAMap();
     },
     // 点击安全帽时触发
     handleBoxClick(item,index) {
@@ -360,6 +308,7 @@ export default {
     // 点击所有标记点字样时触发
     handleAllMarkerShow(){
       // 更新右侧选中索引
+      
       this.selectedRightSn = "";  
       // 在地图上显示所有标记点
       this.setAllPointShow()
@@ -367,33 +316,33 @@ export default {
     // 重置所有标记点的图标，如果有关注点设置关注标记点的坐标 
     resetCurrentPoint(sn){
       var Icon = null;
-      this.pointAmapMarks.forEach(point=>{
-        if(null != point.AmapMarks){
+      for (const [key, value] of this.mapPointsMarksMap) {
+        if(null != value.AmapMarks){
           // 更新标记点图标
-          if(point.sn == sn)
+          if(key == sn)
           {
             Icon = this.currentPointIcon
           }else{
             Icon = this.normalPointIcon
           }
-          point.AmapMarks.setIcon(Icon); // 更新标记点图标
-          point.AmapMarks.setzIndex(100); // 重置标记点覆盖排序
+          value.AmapMarks.setIcon(Icon); // 更新标记点图标
+          value.AmapMarks.setzIndex(100); // 重置标记点覆盖排序
         }
-      });
+      }
     },
     // 更新地图视角属性
     updateAmapView(){
-      for (const [key, value] of Object.entries(this.mapPointsMarksMap)) {
+      for (const [key, value] of this.mapPointsMarksMap) {
         if(key == this.currentMarkerSn){ 
-          if(point.AmapMarks){
+          if(value.AmapMarks){
             // 更新视角焦点位置
-            const position = point.AmapMarks.getPosition(); // 获取标记点的位置
+            const position = value.AmapMarks.getPosition(); // 获取标记点的位置
             if(this.map){
               this.map.setCenter(position); // 设置地图中心点为标记点位置
               // 更新地图缩放级别
               this.map.setZoom(this.getAmapMaxZoom); // 设置合适的缩放级别，可根据实际情况调整
             }
-            point.AmapMarks.setzIndex(150); // 关注点标记点覆盖排序增大，需要显示在别的标记点之上
+            value.AmapMarks.setzIndex(150); // 关注点标记点覆盖排序增大，需要显示在别的标记点之上
           }
         }
       }
@@ -438,8 +387,8 @@ export default {
       });
     },
     // 向地图中添加标记点
-    addPointToAMap(key){
-      const pointInfo = this.mapPointsMap.get(key);
+    addPointToAMap(value,key){
+      const pointInfo = value;
       if(pointInfo){
         // 地图已创建
         if(this.map){
@@ -454,16 +403,16 @@ export default {
               sn: pointInfo.sn,
               AmapMarks: marker,
             };
-            this.$set(this.mapPointsMarksMap,pointInfo.sn,mapPointsMarks)
+            this.mapPointsMarksMap.set(pointInfo.sn,mapPointsMarks)
             // 向地图添加标记点对象
             this.map.add(marker);
         }
       }
     },
     // 更新地图中的标记点坐标
-    modifyPointPosition(key){
+    modifyPointPosition(value,key){
       const point = this.mapPointsMarksMap.get(key);
-      const pointInfo = this.mapPointsMap.get(key);
+      const pointInfo = value;
       if(point && pointInfo){
         // 更新地图中的标记点坐标
         if(null != point.AmapMarks){
@@ -474,7 +423,7 @@ export default {
       }
     },
     // 从地图中移除标记点
-    removePointFromAMap(key){
+    removePointFromAMap(value,key){
       const point = this.mapPointsMarksMap.get(key);
       if(point){
         // 从地图中移除标记点
@@ -517,7 +466,6 @@ export default {
       this.axiosGet(url).then((result)=>{
         if (result.status === 200) {
           var resultMap = new Map(); // 使用Map快速查找sn
-          
           // 1. 将新数据存入Map（键为sn）
           result.data.forEach(marker => {
             var resultPoint = {
@@ -530,28 +478,8 @@ export default {
             resultMap.set(marker.sn, resultPoint);
           });
 
-          // 2. 处理现有mapPointsMap：更新存在的项，删除消失的项
-          for (const sn of this.mapPointsMap.key()) {
-            const resultPoint = resultMap.get(sn);
-            if (resultPoint) { // resultMap 有 mapPointsMap 有 ，更新存在的项
-              // 接口返回值存在该sn：更新属性
-              // 关键点：使用Vue.set/this.$set保证响应式
-              // 直接 userMap[key] = newValue 不会触发视图更新！
-              this.$set(this.mapPointsMap, sn, resultPoint);
-              // 删除记录
-              resultMap.delete(currentPoint.sn)
-            }else{ // resultMap 没有 mapPointsMap 有 ，删除消失的项
-              // 关键点：使用this.$delete保证响应式
-              // 直接 delete this.userMap[key] 不会触发视图更新！
-              this.$delete(this.mapPointsMap, sn);
-            }
-          }
-
-          // 3. 处理mapPointsMap：添加新增的项
-          for (const [key, value] of Object.entries(this.resultMap)) {
-            this.$set(this.mapPointsMap, key, value);
-          }
-
+          // 2. 直接替换mapPointsMap实例，触发vue响应
+          this.mapPointsMap = new Map(resultMap);
           
         }else{
           console.log('查询所有人员、车辆最新位置失败',result.status)
@@ -604,34 +532,40 @@ export default {
       this.currentIframeUrl = '/device-info';
       this.isShowIframe = true;
     },
+    // 打开绑定信息录入页面
+    openBindingInfo() {
+      this.currentIframeUrl = '/binding-info';
+      this.isShowIframe = true;
+    },
 
     // 核心：分析mapPointsMap的变化，触发高德地图标记点变化
     analyzeMapPointsMapChanges(oldMap, newMap) {
-        // 获取新旧键集合
-        const oldKeys = Object.keys(oldMap);
-        const newKeys = Object.keys(newMap);
+      // 1. 检测新增或修改的键
+      for (const key of newMap.keys()) {
+        if (!oldMap.has(key)) {
+          // Map新增了数据
+          // 在高德地图中新增标记点
+          this.addPointToAMap(newMap.get(key),key);
+        } else if (newMap.get(key) !== oldMap.get(key)) {
+          // Map修改了数据
+          // 更新高德地图中的标记点
+          this.modifyPointPosition(newMap.get(key),key);
+        }
+      }
+      
+      // 2. 检测删除的键
+      for (const key of oldMap.keys()) {
+        if (!newMap.has(key)) {
+          // Map删除了数据
+          // 从高德地图中移除标记点
+          this.removePointFromAMap(newMap.get(key),key);
+        }
+      }
+    },
 
-        // 1. 检测新增或修改的键
-        newKeys.forEach(key => {
-            if (!oldKeys.includes(key)) {
-              // 新增
-              // 在高德地图中新增标记点
-              this.addPointToAMap(key, newMap[key]);
-            } else if (newMap[key] !== oldMap[key]) {
-              // 修改
-              // 更新高德地图中的标记点
-              this.modifyPointPosition(key, newMap[key]);
-            }
-        });
-
-        // 2. 检测删除的键
-        oldKeys.forEach(key => {
-            if (!newKeys.includes(key)) {
-              // 删除
-              // 从高德地图中移除标记点
-              this.removePointFromAMap(key, oldMap[key]);
-            }
-        });
+    // 帮助v-for里的元素获得子级内容
+    vforSubValueGet(value,string){
+      return value[1][string]; // map在vue2中被v-for识别时，每一行都会被当成[key,value]的数组，相当于[[key1,value1],[key2,value2]]，所以直接拿到的value实际是[key2,value2]，访问value的第二个元素才是map的value的真正值
     },
     
   }
