@@ -20,7 +20,8 @@
             <!-- <div class="item-icon">🔒</div> -->
             <div class="item-info">
               <p class="item-name"><a>{{ value[1].name }}</a></p>
-              <p class="item-status">状态：{{ value[1].status }}</p>
+              <p class="item-status"><a>SN：{{ value[1].sn }}</a></p>
+              <p class="item-status"><a>状态：{{ value[1].status }}</a><a>人员：{{ value[1].personName }}</a></p>
             </div>
           </div>
         </div>
@@ -96,6 +97,7 @@
     <div v-if="isShowIframe" class="iframe-mask">
       <div class="iframe-container">
         <button class="close-btn" @click="closeIframe">×</button>
+        <!-- <p>{{currentIframeUrl}}</p> -->
         <iframe :src="currentIframeUrl" frameborder="0" class="iframe-content" allowfullscreen></iframe>
       </div>
     </div>
@@ -113,13 +115,6 @@ export default {
   name: 'MapPage',
   data() {
     return {
-      safeBoxList: [
-        { name: '安全帽-01', status: '在线', url: 'http://www.baidu.com' },
-        { name: '安全帽-02', status: '离线', url: 'http://www.163.com' },
-        { name: '安全帽-03', status: '低电量', url: 'http://www.baidu.com' },
-        { name: '安全帽-04', status: '正常', url: 'http://www.hao123.com' },
-        { name: '安全帽-05', status: '告警', url: 'http://www.baidu.com' }
-      ],
       mapPointsMap: new Map([ // 定位标记点列表
         ["sn1",{sn: "sn1",longitude: 116.4074,latitude: 39.9042,name: "标记点一",recordTime: ""}],
         ["sn1",{sn: "sn1",longitude: 116.4074,latitude: 39.9042,name: "标记点一",recordTime: ""}],
@@ -130,7 +125,10 @@ export default {
       ]),
       _oldMapPointsMap: null, // 用于监听mapPointsMap变化时，对比用
       safeBoxMap: new Map([ // 安全帽列表
-        ["sn1",{sn: "sn1", name: '安全帽-01', status: '在线', url: 'http://www.baidu.com' }],
+        [0,{id:0, sn: "sn1", name: '安全帽-01',personName:"张三", status: '已绑定', url: 'http://www.baidu.com' }],
+      ]),
+      bindingMap: new Map([ // 以设备id为key的绑定信息map
+        [0,{personName: "张三", personId: 1,deviceName:"安全帽-01", deviceId: 0}],
       ]),
       isShowIframe: false,       // 控制悬浮框是否显示
       currentIframeUrl: '',       // 当前要显示的url
@@ -162,6 +160,7 @@ export default {
       'getMapCenterLongitude',           // 映射后可直接通过 this.getMapCenterLongitude 访问
       'getMapCenterLatitude',           // 映射后可直接通过 this.getMapCenterLatitude 访问
       'getAmapMaxZoom',           // 映射后可直接通过 this.getAmapMaxZoom 访问
+      'getVideoAddr',           // 映射后可直接通过 this.getVideoAddr 访问
     ]),
     // 计算表单title
     formTitle() {
@@ -255,11 +254,11 @@ export default {
       // 初始化高德地图创建的标记点对象列表
       this.mapPointsMarksMap = new Map([]);
       // 初始化安全帽列表
-      this.safeBoxList = [];
+      this.safeBoxMap = new Map([]);
     },
     // 点击安全帽时触发
     handleBoxClick(value,key) {
-      this.currentIframeUrl = item.url;
+      this.currentIframeUrl = value.url;
       this.isShowIframe = true;
       this.selectedLeftSn = value.sn;  // 更新左侧选中索引
     },
@@ -434,20 +433,21 @@ export default {
     // 查询所有人员、车辆最新位置 
     async getAllLocation(){
       try {
-        var url = '/beidou/location';
-        const result = await service.get(url);
+        const result = await service.get('/beidou/location');
         if (result.status === 200 && result.data.status === 200) {
           var resultMap = new Map(); // 使用Map快速查找sn
           // 1. 将新数据存入Map（键为sn）
           result.data.data.forEach(marker => {
-            var resultPoint = {
-              sn: marker.sn,
-              longitude: Number(marker.lng),
-              latitude: Number(marker.lat),
-              name: marker.fullName,
-              recordTime: marker.tm
-            };
-            resultMap.set(marker.sn, resultPoint);
+            if(marker.lng != "" && marker.lat != ""){ // 测试环境出现无坐标数据，这里过滤一下
+              var resultPoint = {
+                sn: marker.sn,
+                longitude: Number(marker.lng),
+                latitude: Number(marker.lat),
+                name: marker.fullName,
+                recordTime: marker.tm
+              };
+              resultMap.set(marker.sn, resultPoint);
+            }
           });
 
           // 2. 直接替换mapPointsMap实例，触发vue响应
@@ -462,12 +462,43 @@ export default {
     },
     // 查询安全帽列表
     async getSafeBox(){
-      var url = '/beidou/device';
-      const result = await service.get(url);
-      if (result.status === 200 && result.data.status === 200) {
-        
+      // 查询所有绑定关系
+      const resultBinding = await service.get('/beidou/binding/1');
+      if (resultBinding.status === 200 && resultBinding.data.status === 200) {
+        var resultMap = new Map(); // 使用Map快速查找sn
+          // 1. 将新数据存入Map（键为sn）
+          resultBinding.data.data.forEach(Binding => {
+            var BindingItem = {
+              personName: Binding.bindingName,
+              personId: Binding.bindingId,
+              deviceName: Binding.deviceName,
+              deviceId: Binding.deviceId
+            };
+            resultMap.set(Binding.deviceId, BindingItem);
+          });
+          // 2. 直接替换bindingMap实例
+          this.bindingMap = new Map(resultMap);
       }
-
+      // 查询设备列表
+      const resultDevice = await service.get('/beidou/device');
+      if (resultDevice.status === 200 && resultDevice.data.status === 200) {
+        var resultMap = new Map(); // 使用Map快速查找sn
+          // 1. 将新数据存入Map（键为sn）
+          resultDevice.data.data.forEach(safeBox => {
+            var binding = this.bindingMap.get(safeBox.id);
+            var safeBoxItem = {
+              id: safeBox.id,
+              sn: safeBox.deviceSn,
+              name: safeBox.deviceName,
+              personName: binding?binding.personName:"",
+              status: binding?"已绑定":"未绑定",
+              url: this.getVideoAddr+"/H5Live_wasm/index.html?puid="+safeBox.deviceSn+"&idx=0"
+            };
+            resultMap.set(safeBox.id, safeBoxItem);
+          });
+          // 2. 直接替换bindingMap实例
+          this.safeBoxMap = new Map(resultMap);
+      }
     },
     // 点击图标触发
     handleIconClick(type) {
@@ -623,9 +654,9 @@ export default {
   background: transparent; 
   border-radius: 4px; 
   box-shadow: 0 2px 4px rgba(0,0,0,0.1); 
-  margin-bottom: 0.1rem; 
-  margin-top: 0.1rem; 
+  margin-bottom: 0.5rem;
   margin-right: 0.1rem; 
+  padding: 1rem;
   transition: transform 0.2s; 
   background: rgba(37, 99, 235, 0.1); 
   transition: transform 0.2s, background 0.2s; /* 新增背景过渡 */
@@ -653,24 +684,28 @@ export default {
   }
 .item-name a{ 
   position: relative;  /* 开启定位 */
-  left: 40%; /* 左侧基准点 */
-  top: 0%; /* 垂直基准点 */
+  /* left: 40%; 左侧基准点 */
+  /*top: 0%;  垂直基准点 */
   width: 100%;
-  transform: translate(-50%, -50%); /* 水平和垂直居中 */
+  /*transform: translate(-50%, -50%);  水平和垂直居中 */
   font-weight: 600; 
-  font-size: 0.7vw;
-  color: #bac0ca; 
+  font-size: 0.9vw;
+  color: #bac0ca;
   white-space: nowrap; /* 文本不换行 */
   overflow: hidden; /* 溢出隐藏 */
   text-overflow: ellipsis; /* 溢出显示省略号 */
   }
 .item-status { 
-  color: #babec7; 
-  font-size: 0.9rem; 
-  margin: 0; 
+  color: #b3b6be;
+  font-size: 0.8vw;
+  margin: 0.3rem 0;
   white-space: nowrap; /* 文本不换行 */
   overflow: hidden; /* 溢出隐藏 */
   text-overflow: ellipsis; /* 溢出显示省略号 */
+  }
+
+.item-status a{ 
+  padding-right: 1rem;
   }
 
 .map-view { width: 60%; background: #edf2f7; position: relative; }
@@ -685,7 +720,8 @@ export default {
   background: transparent; /* 原 #ffffff → 透明 */
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-  margin-bottom: 1rem;
+  margin-bottom: 0.5rem;
+  margin-right: 0.1rem; 
   transition: transform 0.2s;
   background: rgba(37, 99, 235, 0.1); 
   transition: transform 0.2s, background 0.2s; /* 新增背景过渡 */
@@ -707,14 +743,14 @@ export default {
   font-weight: 600;
   color: #bac0ca;
   margin: 0 0 0.5rem 0;
-  font-size: 0.7vw;
+  font-size: 0.9vw;
   white-space: nowrap; /* 文本不换行 */
   overflow: hidden; /* 溢出隐藏 */
   text-overflow: ellipsis; /* 溢出显示省略号 */
 }
 .marker-coord {
-  color: #babec7;
-  font-size: 0.9rem;
+  color: #b3b6be;
+  font-size: 0.8vw;
   margin: 0.3rem 0;
   white-space: nowrap; /* 文本不换行 */
   overflow: hidden; /* 溢出隐藏 */
@@ -741,9 +777,18 @@ export default {
   position: relative;
   width: 80%;
   height: 80%;
-  background: transparent; /* 原 #fff → 透明 */
+  /*background: transparent;  原 #fff → 透明 */
+  background: #ffffff;
   border-radius: 8px;
   overflow: hidden; 
+}
+
+.iframe-container p{
+  position: absolute;
+  z-index: 2;
+  color: #9c9ea5;
+  font-size: 0.8vw;
+  margin: 1rem;
 }
 
 .close-btn {
@@ -756,12 +801,13 @@ export default {
   cursor: pointer;
   padding: 2px 10px;
   border-radius: 50%;
-  z-index: 4; 
+  z-index: 5; 
 }
 
 .iframe-content {
   width: 100%;
   height: 100%;
+  z-index: 4; 
 }
 
 /* 蓝色透明遮罩层 */

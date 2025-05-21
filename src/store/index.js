@@ -10,6 +10,7 @@ const state = {
     mapCenterLongitude: 0 , // 地图默认中心点经度
     mapCenterLatitude: 0 , // 地图默认中心点纬度
     AmapMaxZoom: 16 , // 地图最大缩放等级
+    videoAddr: "" , // 安全帽视频地址
   }
 }
 
@@ -21,6 +22,7 @@ const mutations = {
       mapCenterLongitude: newConfig.mapCenterLongitude,
       mapCenterLatitude: newConfig.mapCenterLatitude,
       AmapMaxZoom: newConfig.AmapMaxZoom,
+      videoAddr: newConfig.videoAddr,
     }
   }
 }
@@ -31,12 +33,14 @@ const getters = {
   getSecurityJsCode: (state) => state.config.securityJsCode_GD,
   // 获取 key_GD
   getKeyGD: (state) => state.config.key_GD,
-  // 获取 webSocketUrl
+  // 获取 MapCenterLongitude
   getMapCenterLongitude: (state) => state.config.mapCenterLongitude,
-  // 获取 webSocketUrl
+  // 获取 MapCenterLatitude
   getMapCenterLatitude: (state) => state.config.mapCenterLatitude,
-  // 获取 webSocketUrl
-  getAmapMaxZoom: (state) => state.config.AmapMaxZoom
+  // 获取 AmapMaxZoom
+  getAmapMaxZoom: (state) => state.config.AmapMaxZoom,
+  // 获取 videoAddr
+  getVideoAddr: (state) => state.config.videoAddr
 }
 
 export default new Vuex.Store({

@@ -3,6 +3,7 @@
   "key_GD": "89324109e8bcf9b5a3baec39790df3f8",
   "mapCenterLongitude": 116.1,
   "mapCenterLatitude": 39.1,
-  "AmapMaxZoom": 16.5
+  "AmapMaxZoom": 18,
+  "videoAddr":"http://172.22.140.83:8082"
 }
   
