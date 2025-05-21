@@ -12,15 +12,15 @@
         </div>
         <div class="panel-background-inside">
           <div class="list-item" 
-            v-for="(item, index) in safeBoxList" 
-            :key="index" 
-            @click="handleBoxClick(item,index)"  
-            :class="{ active: index === selectedLeftIndex }"
+            v-for="(value, key) in safeBoxMap" 
+            :key="key" 
+            @click="handleBoxClick(value[1],key)"  
+            :class="{ active: value[1].sn === selectedLeftSn }"
             style="cursor: pointer;">  
             <!-- <div class="item-icon">🔒</div> -->
             <div class="item-info">
-              <p class="item-name"><a>{{ item.name }}</a></p>
-              <!-- <p class="item-status">状态：{{ item.status }}</p> -->
+              <p class="item-name"><a>{{ value[1].name }}</a></p>
+              <p class="item-status">状态：{{ value[1].status }}</p>
             </div>
           </div>
         </div>
@@ -48,11 +48,11 @@
             :style="{ backgroundImage: `url(${require('@/assets/images/device.png')})` }"
             @click="openDeviceInfo()"
           ></div>
-          <div 
+          <!-- <div 
             class="input-icon"
             :style="{ backgroundImage: `url(${require('@/assets/images/binding.png')})` }"
             @click="openBindingInfo()"
-          ></div>
+          ></div> -->
         </div>
       </div>
       <div class="map-placeholder">
@@ -130,7 +130,7 @@ export default {
       ]),
       _oldMapPointsMap: null, // 用于监听mapPointsMap变化时，对比用
       safeBoxMap: new Map([ // 安全帽列表
-        ["",{ name: '安全帽-01', status: '在线', url: 'http://www.baidu.com' }],
+        ["sn1",{sn: "sn1", name: '安全帽-01', status: '在线', url: 'http://www.baidu.com' }],
       ]),
       isShowIframe: false,       // 控制悬浮框是否显示
       currentIframeUrl: '',       // 当前要显示的url
@@ -141,7 +141,7 @@ export default {
       normalPointIcon: null , // 正常状态下的标记点图标对象
       currentPointIcon: null , // 正在关注的点图标对象
       currentMarkerSn: "" , // 正在关注的点的sn
-      selectedLeftIndex: -1,  // 左侧安全帽列表选中索引
+      selectedLeftSn: "",  // 左侧安全帽列表选中索引
       selectedRightSn: "", // 右侧标记点列表选中SN
       isShowForm: false, // 控制表单显示
       currentFormType: '', // 当前表单类型（person/car/device）
@@ -258,10 +258,10 @@ export default {
       this.safeBoxList = [];
     },
     // 点击安全帽时触发
-    handleBoxClick(item,index) {
+    handleBoxClick(value,key) {
       this.currentIframeUrl = item.url;
       this.isShowIframe = true;
-      this.selectedLeftIndex = index;  // 更新左侧选中索引
+      this.selectedLeftSn = value.sn;  // 更新左侧选中索引
     },
     // 点击标记点时触发
     handleMarkerClick(value,key){
@@ -428,15 +428,18 @@ export default {
     ApiTimerFaction(){
       // 查询所有人员、车辆最新位置
       this.getAllLocation();
+      // 查询安全帽列表
+      this.getSafeBox();
     },
     // 查询所有人员、车辆最新位置 
     async getAllLocation(){
-      var url = '/beidou/location';
-      this.axiosGet(url).then((result)=>{
-        if (result.status === 200) {
+      try {
+        var url = '/beidou/location';
+        const result = await service.get(url);
+        if (result.status === 200 && result.data.status === 200) {
           var resultMap = new Map(); // 使用Map快速查找sn
           // 1. 将新数据存入Map（键为sn）
-          result.data.forEach(marker => {
+          result.data.data.forEach(marker => {
             var resultPoint = {
               sn: marker.sn,
               longitude: Number(marker.lng),
@@ -453,7 +456,18 @@ export default {
         }else{
           console.log('查询所有人员、车辆最新位置失败',result.status)
         }
-      })
+      } catch (error) {
+        console.error('发送数据失败:', error);
+      }
+    },
+    // 查询安全帽列表
+    async getSafeBox(){
+      var url = '/beidou/device';
+      const result = await service.get(url);
+      if (result.status === 200 && result.data.status === 200) {
+        
+      }
+
     },
     // 点击图标触发
     handleIconClick(type) {
