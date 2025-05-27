@@ -78,7 +78,16 @@
           </div>
           <div class="form-group">
             <label>是否运检分离：</label>
-            <input v-model="formData.isOperationInspectionSeparated" placeholder="请输入（是/否）">
+            <div class="radio-group">
+              <label class="radio-option">
+                <input type="radio" value="是" v-model="formData.isOperationInspectionSeparated">
+                是
+              </label>
+              <label class="radio-option">
+                <input type="radio" value="否" v-model="formData.isOperationInspectionSeparated">
+                否
+              </label>
+            </div>
           </div>
           <div class="form-group">
             <label>角色：</label>
@@ -282,7 +291,7 @@ export default {
   background: #f8f9fa;
   border-radius: 8px;
   padding: 1.5rem;
-  height: 1279.2px; /* 关键：高度设置为右侧form高度 */
+  height: 1257.6px; /* 关键：高度设置为右侧form高度 */
 }
 
 .list-content {
@@ -458,4 +467,7 @@ export default {
   justify-content: center;
   font-size: 1.5rem;
 }
+
+
+
 </style>

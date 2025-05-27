@@ -37,7 +37,16 @@
           </div>
           <div class="form-group">
             <label>设备类型：</label>
-            <input v-model="formData.deviceType" placeholder="请输入设备类型（如：传感器/控制器）">
+            <div class="radio-group">
+              <label class="radio-option">
+                <input type="radio" value="1" v-model="formData.deviceType">
+                终端
+              </label>
+              <label class="radio-option">
+                <input type="radio" value="2" v-model="formData.deviceType">
+                安全帽
+              </label>
+            </div>
           </div>
           <div class="form-group">
             <label>基础信息（JSON）：</label>
@@ -216,7 +225,7 @@ export default {
   background: #f8f9fa;
   border-radius: 8px;
   padding: 1.5rem;
-  height: 511.2px; /* 关键：高度设置为右侧form高度 */
+  height: 489.6px; /* 关键：高度设置为右侧form高度 */
 }
 
 .list-content {
